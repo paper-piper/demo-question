@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Rubik, Heebo } from 'next/font/google';
 import './globals.css';
 
@@ -19,6 +19,13 @@ const heebo = Heebo({
 export const metadata: Metadata = {
   title: 'דמוקרטי לב השרון מהלכה למעשה',
   description: 'לומדה לחברי קהילת בית הספר',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#f4f1ec',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

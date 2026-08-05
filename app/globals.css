@@ -56,6 +56,14 @@ body {
   font-size: 15px;
   line-height: 1.85;
   -webkit-font-smoothing: antialiased;
+  /* Stops iOS from auto-inflating text in narrow columns. */
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1,
@@ -95,6 +103,8 @@ button:disabled {
   max-width: 900px;
   margin-inline: auto;
   padding: 20px 20px 64px;
+  padding-inline-start: max(20px, env(safe-area-inset-left));
+  padding-inline-end: max(20px, env(safe-area-inset-right));
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -110,11 +120,11 @@ button:disabled {
 
 @media (max-width: 640px) {
   .card {
-    padding: 26px 20px;
+    padding: 22px 16px;
     border-radius: 20px;
   }
   .shell {
-    padding: 14px 12px 48px;
+    padding: 10px 10px calc(40px + env(safe-area-inset-bottom));
   }
 }
 
@@ -443,85 +453,127 @@ button:disabled {
 
 /* ---------- sorting activity ---------- */
 
-.chip-tray {
+.sort-progress {
   display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  padding: 16px;
-  background: var(--page-bg);
-  border: 1px dashed var(--border);
-  border-radius: var(--r-panel);
-  min-height: 76px;
-  align-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-rubik), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  margin: 4px 0 14px;
 }
 
-.chip {
+.sort-progress > span {
+  flex: none;
+}
+
+/* The card the learner is currently placing. */
+.sort-stage {
+  display: grid;
+  place-items: center;
+  min-height: 116px;
+  margin-bottom: 4px;
+}
+
+.sort-card {
   background: var(--paper);
-  border: 1px solid var(--border);
-  border-radius: var(--r-pill);
-  padding: 9px 16px;
-  font-size: 14px;
-  line-height: 1.4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-panel);
+  box-shadow: var(--sh-card);
+  padding: 20px 22px;
+  font-size: 16px;
+  line-height: 1.6;
   color: var(--ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  text-align: center;
+  width: 100%;
   cursor: grab;
-  text-align: start;
-  transition: box-shadow 0.15s ease, transform 0.1s ease;
-  max-width: 100%;
+  user-select: none;
+  /* Required so a touch-drag moves the card instead of scrolling the page. */
+  touch-action: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.chip:hover:not(:disabled) {
-  box-shadow: var(--sh-chip);
-}
-
-.chip[data-selected='true'] {
+.sort-card[data-dragging='true'] {
+  cursor: grabbing;
+  box-shadow: var(--sh-modal);
   border-color: var(--terracotta);
   background: var(--terracotta-soft);
-  box-shadow: var(--sh-chip);
+  transition: none;
+  z-index: 10;
+  position: relative;
 }
 
-.chip[data-dragging='true'] {
-  opacity: 0.45;
+.sort-hint {
+  text-align: center;
+  margin-bottom: 14px;
 }
 
-.chip[data-verdict='correct'] {
-  background: var(--success-soft);
-  border-color: var(--success);
-  color: var(--success);
-  cursor: default;
-}
-
-.chip[data-verdict='wrong'] {
-  background: var(--danger-soft);
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.bucket-grid {
+.bucket-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 18px;
+  gap: 12px;
 }
 
-@media (max-width: 700px) {
-  .bucket-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.bucket {
+.bucket-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: start;
+  background: var(--paper);
   border: 2px dashed var(--border);
   border-radius: 14px;
-  padding: 14px;
-  background: var(--paper);
-  min-height: 120px;
+  padding: 16px 16px;
+  min-height: 64px;
+  font-family: var(--font-rubik), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
   transition: all 0.15s ease;
 }
 
-.bucket[data-over='true'] {
+.bucket-btn:hover,
+.bucket-btn[data-over='true'] {
   border-color: var(--terracotta);
   background: var(--terracotta-soft);
+  border-style: solid;
+}
+
+.bucket-btn-label {
+  flex: 1;
+}
+
+.bucket-count {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: var(--page-bg);
+  border-radius: var(--r-pill);
+  min-width: 26px;
+  padding: 3px 8px;
+  text-align: center;
+}
+
+.sort-undo {
+  display: block;
+  margin: 14px auto 0;
+}
+
+/* Review grid, shown once every statement has been placed. */
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.review-bucket {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--page-bg);
 }
 
 .bucket-title {
@@ -535,16 +587,41 @@ button:disabled {
   gap: 8px;
 }
 
-.bucket-count {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-faint);
-}
-
 .bucket-items {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.review-empty {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.chip {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+  padding: 11px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  text-align: start;
+  width: 100%;
+  transition: box-shadow 0.15s ease;
+}
+
+.chip[data-verdict='correct'] {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.chip[data-verdict='wrong'] {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .hint {
@@ -927,6 +1004,155 @@ button:disabled {
   * {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- mobile ----------
+   Phones are the primary device for this module, so touch targets, stacked
+   actions and single-column activity layouts are the default below 640px. */
+
+.btn-block {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  /* Comfortable thumb targets everywhere. */
+  .btn,
+  .option,
+  .bucket-btn,
+  .chip,
+  .step {
+    min-height: 48px;
+  }
+
+  .btn {
+    padding: 15px 22px;
+    font-size: 15.5px;
+  }
+
+  /* Primary action first and full width, so it sits under the thumb. */
+  .nav-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .nav-row .btn {
+    width: 100%;
+  }
+
+  /* Unit stepper: scrolls sideways instead of wrapping to a second row. */
+  .progress-wrap {
+    padding: 12px 10px 4px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--page-bg);
+  }
+
+  .unit-stepper {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+  }
+
+  .unit-stepper::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Icon + number only, so all four units fit without scrolling. */
+  .step {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 13.5px;
+  }
+
+  .step-word {
+    display: none;
+  }
+
+  .bar-label {
+    font-size: 11.5px;
+    gap: 10px;
+  }
+
+  /* Activities go single column. */
+  .bucket-list,
+  .review-grid,
+  .corkboard {
+    grid-template-columns: 1fr;
+  }
+
+  .bucket-btn {
+    min-height: 60px;
+    padding: 14px 15px;
+    font-size: 14.5px;
+  }
+
+  .sort-card {
+    padding: 22px 18px;
+    font-size: 16.5px;
+  }
+
+  .sort-stage {
+    min-height: 130px;
+  }
+
+  .option {
+    padding: 15px 15px;
+    font-size: 15px;
+  }
+
+  .scenario {
+    padding: 15px 16px;
+    font-size: 15.5px;
+  }
+
+  .modal {
+    padding: 24px 20px 20px;
+    max-height: 88dvh;
+    border-radius: 20px;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .screen-title {
+    font-size: 25px;
+  }
+
+  .photo-strip {
+    gap: 10px;
+    margin: 18px 0;
+  }
+
+  .certificate {
+    padding: 28px 18px;
+  }
+
+  /* 16px minimum stops iOS Safari zooming in on focus. */
+  .input,
+  .textarea {
+    font-size: 16px;
+    padding: 14px;
+  }
+
+  .checkbox-row {
+    padding: 15px 14px;
+  }
+
+  .checkbox-row input {
+    width: 24px;
+    height: 24px;
   }
 }
 

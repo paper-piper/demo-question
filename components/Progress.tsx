@@ -34,7 +34,10 @@ export function Progress({
               title={u.title}
             >
               <UnitIcon name={u.icon} />
-              <span>יחידה {u.number}</span>
+              <span>
+                <span className="step-word">יחידה </span>
+                {u.number}
+              </span>
             </button>
           );
         })}

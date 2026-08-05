@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FEEDBACK, SortActivity as SortActivityData } from '@/content/module';
 import { ConstitutionModal } from '../ConstitutionModal';
 import { FeedbackPanel } from '../Feedback';
-import { Highlighted } from '../RichText';
 
-type Placements = Record<string, string | undefined>;
+/** Movement in px before a touch/mouse gesture counts as a drag rather than a tap. */
+const DRAG_THRESHOLD = 8;
 
 export function SortActivity({
   data,
@@ -17,38 +17,34 @@ export function SortActivity({
   done: boolean;
   onComplete: () => void;
 }) {
-  const [placements, setPlacements] = useState<Placements>({});
-  /** Item ids confirmed correct — these lock in place. */
+  const [placements, setPlacements] = useState<Record<string, string>>({});
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [wrong, setWrong] = useState<Set<string>>(new Set());
   const [checked, setChecked] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [overBucket, setOverBucket] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
+  const [overBucket, setOverBucket] = useState<string | null>(null);
+  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const draggingRef = useRef(false);
+
   const solved = done || locked.size === data.items.length;
-
-  const tray = useMemo(
-    () => data.items.filter((it) => !placements[it.id]),
-    [data.items, placements],
-  );
-
-  const allPlaced = tray.length === 0;
+  const queue = data.items.filter((it) => !placements[it.id]);
+  const current = queue[0];
+  const placedCount = data.items.length - queue.length;
 
   function place(itemId: string, bucketId: string) {
-    if (locked.has(itemId) || solved) return;
     setPlacements((p) => ({ ...p, [itemId]: bucketId }));
-    setSelected(null);
     setChecked(false);
     setWrong((w) => {
+      if (!w.has(itemId)) return w;
       const next = new Set(w);
       next.delete(itemId);
       return next;
     });
   }
 
-  function returnToTray(itemId: string) {
+  function returnToDeck(itemId: string) {
     if (locked.has(itemId) || solved) return;
     setPlacements((p) => {
       const next = { ...p };
@@ -62,15 +58,13 @@ export function SortActivity({
     const nextLocked = new Set(locked);
     const nextWrong = new Set<string>();
     for (const item of data.items) {
-      const placed = placements[item.id];
-      if (!placed) continue;
-      if (placed === item.bucketId) nextLocked.add(item.id);
+      if (placements[item.id] === item.bucketId) nextLocked.add(item.id);
       else nextWrong.add(item.id);
     }
     setLocked(nextLocked);
     setWrong(nextWrong);
     setChecked(true);
-    if (nextWrong.size === 0 && nextLocked.size === data.items.length) onComplete();
+    if (nextWrong.size === 0) onComplete();
   }
 
   function clearWrong() {
@@ -83,11 +77,55 @@ export function SortActivity({
     setChecked(false);
   }
 
-  function verdictFor(itemId: string): 'correct' | 'wrong' | undefined {
-    if (solved || locked.has(itemId)) return 'correct';
-    if (checked && wrong.has(itemId)) return 'wrong';
-    return undefined;
+  /* ---- pointer drag: works with touch, pen and mouse alike ---- */
+
+  /* Bucket rects are captured on pointer-down: only the card moves during a
+     drag, so these stay valid. Hit-testing rects avoids elementFromPoint,
+     which would just return the dragged card sitting under the finger. */
+  const rectsRef = useRef<{ id: string; rect: DOMRect }[]>([]);
+
+  function bucketUnder(x: number, y: number): string | null {
+    for (const { id, rect } of rectsRef.current) {
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return id;
+    }
+    return null;
   }
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (!current) return;
+    startRef.current = { x: e.clientX, y: e.clientY };
+    draggingRef.current = false;
+    rectsRef.current = [...document.querySelectorAll('[data-bucket]')].map((el) => ({
+      id: el.getAttribute('data-bucket') as string,
+      rect: el.getBoundingClientRect(),
+    }));
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    const start = startRef.current;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (!draggingRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    draggingRef.current = true;
+    setDrag({ dx, dy });
+    setOverBucket(bucketUnder(e.clientX, e.clientY));
+  }
+
+  function onPointerUp(e: React.PointerEvent) {
+    const wasDragging = draggingRef.current;
+    startRef.current = null;
+    draggingRef.current = false;
+    setDrag(null);
+    setOverBucket(null);
+    if (!wasDragging || !current) return;
+    const target = bucketUnder(e.clientX, e.clientY);
+    if (target) place(current.id, target);
+  }
+
+  const showDeck = !solved && !!current;
+  const inReview = !solved && !current;
 
   return (
     <>
@@ -95,95 +133,110 @@ export function SortActivity({
       <h2 className="section-heading">{data.heading}</h2>
       <p className="body-p">{data.instruction}</p>
 
-      {!solved && (
+      {showDeck && (
         <>
-          <div
-            className="chip-tray"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => {
-              if (dragging) returnToTray(dragging);
-              setDragging(null);
-            }}
-            aria-label="היגדים למיון"
-          >
-            {tray.length === 0 ? (
-              <p className="hint" style={{ margin: 0 }}>
-                כל ההיגדים מוינו. אפשר לבדוק.
-              </p>
-            ) : (
-              tray.map((item) => (
-                <button
-                  key={item.id}
-                  className="chip"
-                  draggable
-                  data-selected={selected === item.id}
-                  data-dragging={dragging === item.id}
-                  onDragStart={() => setDragging(item.id)}
-                  onDragEnd={() => setDragging(null)}
-                  onClick={() => setSelected(selected === item.id ? null : item.id)}
-                  aria-pressed={selected === item.id}
-                >
-                  {item.text}
-                </button>
-              ))
-            )}
+          <div className="sort-progress">
+            <span>
+              היגד {placedCount + 1} מתוך {data.items.length}
+            </span>
+            <div className="bar" style={{ flex: 1 }}>
+              <div
+                className="bar-fill"
+                style={{ width: `${(placedCount / data.items.length) * 100}%` }}
+              />
+            </div>
           </div>
-          <p className="hint">
-            גררו היגד אל הרשות המתאימה, או הקישו על היגד ואז על הרשות שאליה הוא שייך.
+
+          <div className="sort-stage">
+            <div
+              className="sort-card"
+              data-dragging={drag ? 'true' : 'false'}
+              style={
+                drag ? { transform: `translate(${drag.dx}px, ${drag.dy}px)` } : undefined
+              }
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+            >
+              {current.text}
+            </div>
+          </div>
+
+          <p className="hint sort-hint">
+            בחרו את הרשות המתאימה, או גררו את הכרטיס אליה.
           </p>
+
+          <div className="bucket-list">
+            {data.buckets.map((bucket) => {
+              const count = data.items.filter((it) => placements[it.id] === bucket.id).length;
+              return (
+                <button
+                  key={bucket.id}
+                  className="bucket-btn"
+                  data-bucket={bucket.id}
+                  data-over={overBucket === bucket.id}
+                  onClick={() => place(current.id, bucket.id)}
+                >
+                  <span className="bucket-btn-label">{bucket.label}</span>
+                  <span className="bucket-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {placedCount > 0 && (
+            <button
+              className="btn btn-link sort-undo"
+              onClick={() => {
+                const lastPlaced = data.items
+                  .filter((it) => placements[it.id] && !locked.has(it.id))
+                  .pop();
+                if (lastPlaced) returnToDeck(lastPlaced.id);
+              }}
+            >
+              ביטול המיון האחרון
+            </button>
+          )}
         </>
       )}
 
-      <div className="bucket-grid">
-        {data.buckets.map((bucket) => {
-          const items = data.items.filter((it) => placements[it.id] === bucket.id);
-          return (
-            <div
-              key={bucket.id}
-              className="bucket"
-              data-over={overBucket === bucket.id}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setOverBucket(bucket.id);
-              }}
-              onDragLeave={() => setOverBucket(null)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setOverBucket(null);
-                if (dragging) place(dragging, bucket.id);
-                setDragging(null);
-              }}
-              onClick={() => {
-                if (selected) place(selected, bucket.id);
-              }}
-            >
-              <h3 className="bucket-title">
-                <Highlighted text={bucket.label} />
-                <span className="bucket-count">({items.length})</span>
-              </h3>
-              <div className="bucket-items">
-                {items.map((item) => (
-                  <button
-                    key={item.id}
-                    className="chip"
-                    data-verdict={verdictFor(item.id)}
-                    draggable={!locked.has(item.id) && !solved}
-                    onDragStart={() => setDragging(item.id)}
-                    onDragEnd={() => setDragging(null)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      returnToTray(item.id);
-                    }}
-                    disabled={locked.has(item.id) || solved}
-                  >
-                    {item.text}
-                  </button>
-                ))}
+      {(inReview || solved) && (
+        <div className="review-grid">
+          {data.buckets.map((bucket) => {
+            const items = data.items.filter((it) => placements[it.id] === bucket.id);
+            return (
+              <div className="review-bucket" key={bucket.id}>
+                <h3 className="bucket-title">
+                  <span style={{ flex: 1 }}>{bucket.label}</span>
+                  <span className="bucket-count">{items.length}</span>
+                </h3>
+                <div className="bucket-items">
+                  {items.map((item) => {
+                    const verdict = solved || locked.has(item.id)
+                      ? 'correct'
+                      : checked && wrong.has(item.id)
+                        ? 'wrong'
+                        : undefined;
+                    return (
+                      <button
+                        key={item.id}
+                        className="chip"
+                        data-verdict={verdict}
+                        onClick={() => returnToDeck(item.id)}
+                        disabled={locked.has(item.id) || solved}
+                      >
+                        {item.text}
+                      </button>
+                    );
+                  })}
+                  {items.length === 0 && <p className="review-empty">אין היגדים</p>}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {solved ? (
         <FeedbackPanel verdict="correct" message={FEEDBACK.correct} />
@@ -194,19 +247,16 @@ export function SortActivity({
             message={`${FEEDBACK.incorrect} ${wrong.size} היגדים אינם ברשות הנכונה.`}
             onOpenConstitution={() => setShowModal(true)}
           />
-          <button className="btn btn-ghost" onClick={clearWrong} style={{ marginTop: 12 }}>
+          <button className="btn btn-ghost btn-block" onClick={clearWrong}>
             החזרת ההיגדים השגויים ותיקון
           </button>
         </>
       ) : (
-        <button
-          className="btn btn-primary"
-          onClick={check}
-          disabled={!allPlaced}
-          style={{ marginTop: 18 }}
-        >
-          בדיקת המיון
-        </button>
+        inReview && (
+          <button className="btn btn-primary btn-block" onClick={check}>
+            בדיקת המיון
+          </button>
+        )
       )}
 
       {showModal && (

@@ -498,6 +498,9 @@ export const KEY_TERMS: string[] = [
   'ועדת',
   'ועדה',
   // choice
+  'בחירה ואחריות',
+  'זכות התכנון',
+  'חופש מכפייה',
   'בחירה',
   'הבחירה',
   // responsibility
