@@ -40,6 +40,16 @@ function shortLabel(label: string) {
   return label.replace(/\s*\([^)]*\)\s*/g, ' ').trim() || label;
 }
 
+/** Fisher–Yates, without mutating the source array. */
+function shuffled<T>(arr: T[]): T[] {
+  const next = [...arr];
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
 export function SortActivity({
   data,
   done,
@@ -71,15 +81,20 @@ export function SortActivity({
   /** Latest teardown for an in-flight press, so unmount can't leak listeners. */
   const teardown = useRef<(() => void) | null>(null);
 
-  const solved = done || locked.size === data.items.length;
+  /* Shuffled once per mount (not per render) so the tray order isn't the same
+     every time a learner opens the activity, but stays stable while they
+     work through it. */
+  const items = useMemo(() => shuffled(data.items), [data.items]);
+
+  const solved = done || locked.size === items.length;
 
   const tray = useMemo(
-    () => data.items.filter((it) => !placements[it.id]),
-    [data.items, placements],
+    () => items.filter((it) => !placements[it.id]),
+    [items, placements],
   );
 
   const allPlaced = tray.length === 0;
-  const selectedItem = data.items.find((it) => it.id === selected);
+  const selectedItem = items.find((it) => it.id === selected);
 
   const place = useCallback(
     (itemId: string, bucketId: string) => {
@@ -130,7 +145,18 @@ export function SortActivity({
     return null;
   }, []);
 
-  /** One frame of the drag: auto-scroll, hit-test, move the ghost. */
+  /* The ghost follows the pointer straight off the pointermove event rather
+     than waiting for a frame, so it never trails the finger. */
+  const syncGhost = useCallback((p: Press) => {
+    const el = ghostEl.current;
+    if (!el) return;
+    el.style.transform =
+      `translate3d(${p.x + p.dx}px, ${p.y + p.dy}px, 0) translate(-50%, -50%) rotate(-2deg)`;
+    el.style.opacity = '1';
+  }, []);
+
+  /** Auto-scroll only: the page has to keep moving while the finger holds
+      still near an edge, which needs a frame loop rather than an event. */
   const tick = useCallback(() => {
     const p = press.current;
     if (!p || !p.dragging) {
@@ -138,25 +164,24 @@ export function SortActivity({
       return;
     }
 
-    /* Auto-scroll when the finger nears an edge — the whole point is that the
-       learner never has to let go and scroll to reach a bucket. */
+    /* The whole point is that the learner never has to let go and scroll to
+       reach a bucket that started off-screen. */
     const h = window.innerHeight;
+    const before = window.scrollY;
     if (p.y < EDGE_ZONE) {
       window.scrollBy(0, -Math.ceil(EDGE_SPEED * (1 - p.y / EDGE_ZONE)));
     } else if (p.y > h - EDGE_ZONE) {
       window.scrollBy(0, Math.ceil(EDGE_SPEED * (1 - (h - p.y) / EDGE_ZONE)));
     }
-
-    setOverTarget(hitTest(p.x, p.y));
-
-    if (ghostEl.current) {
-      ghostEl.current.style.transform =
-        `translate3d(${p.x + p.dx}px, ${p.y + p.dy}px, 0) translate(-50%, -50%) rotate(-2deg)`;
-      ghostEl.current.style.opacity = '1';
+    /* Scrolling slides the buckets under a stationary finger, so the target
+       can change without the pointer moving at all. */
+    if (window.scrollY !== before) {
+      syncGhost(p);
+      setOverTarget(hitTest(p.x, p.y));
     }
 
     frame.current = requestAnimationFrame(tick);
-  }, [hitTest]);
+  }, [hitTest, syncGhost]);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>, itemId: string, text: string) => {
@@ -220,7 +245,11 @@ export function SortActivity({
         if (!cur || ev.pointerId !== cur.pointerId) return;
         cur.x = ev.clientX;
         cur.y = ev.clientY;
-        if (cur.dragging) return;
+        if (cur.dragging) {
+          syncGhost(cur);
+          setOverTarget(hitTest(cur.x, cur.y));
+          return;
+        }
 
         const far = Math.hypot(ev.clientX - cur.startX, ev.clientY - cur.startY) > TAP_SLOP;
         if (!far) return;
@@ -259,8 +288,14 @@ export function SortActivity({
 
       if (p.isTouch) p.holdTimer = window.setTimeout(begin, TOUCH_HOLD_MS);
     },
-    [hitTest, locked, place, returnToTray, solved, tick],
+    [hitTest, locked, place, returnToTray, solved, syncGhost, tick],
   );
+
+  /* Place the ghost the moment it mounts, so a long press that hasn't moved
+     yet still shows the card lifted off the tray. */
+  useEffect(() => {
+    if (dragItem && press.current) syncGhost(press.current);
+  }, [dragItem, syncGhost]);
 
   /* Never leave document listeners or a frozen page behind. */
   useEffect(() => () => teardown.current?.(), []);
@@ -268,7 +303,7 @@ export function SortActivity({
   function check() {
     const nextLocked = new Set(locked);
     const nextWrong = new Set<string>();
-    for (const item of data.items) {
+    for (const item of items) {
       const placed = placements[item.id];
       if (!placed) continue;
       if (placed === item.bucketId) nextLocked.add(item.id);
@@ -277,7 +312,7 @@ export function SortActivity({
     setLocked(nextLocked);
     setWrong(nextWrong);
     setChecked(true);
-    if (nextWrong.size === 0 && nextLocked.size === data.items.length) onComplete();
+    if (nextWrong.size === 0 && nextLocked.size === items.length) onComplete();
   }
 
   function clearWrong() {
@@ -337,7 +372,7 @@ export function SortActivity({
 
       <div className="bucket-grid">
         {data.buckets.map((bucket) => {
-          const items = data.items.filter((it) => placements[it.id] === bucket.id);
+          const bucketItems = items.filter((it) => placements[it.id] === bucket.id);
           return (
             <div
               key={bucket.id}
@@ -354,13 +389,13 @@ export function SortActivity({
             >
               <h3 className="bucket-title">
                 <Highlighted text={bucket.label} />
-                <span className="bucket-count">({items.length})</span>
+                <span className="bucket-count">({bucketItems.length})</span>
               </h3>
               <div className="bucket-items">
-                {items.length === 0 && (dragItem || selected) && (
+                {bucketItems.length === 0 && (dragItem || selected) && (
                   <p className="bucket-placeholder">שחררו כאן</p>
                 )}
-                {items.map((item) => (
+                {bucketItems.map((item) => (
                   <button
                     key={item.id}
                     className="chip"

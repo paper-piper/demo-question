@@ -12,11 +12,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 });
   }
 
-  const { name, phoneNumber, unitReached, passed } = (body ?? {}) as {
+  const { name, phoneNumber } = (body ?? {}) as {
     name?: unknown;
     phoneNumber?: unknown;
-    unitReached?: unknown;
-    passed?: unknown;
   };
 
   if (typeof name !== 'string' || name.trim().length === 0) {
@@ -33,8 +31,6 @@ export async function POST(request: Request) {
       name: name.trim().slice(0, 200),
       phoneNumber:
         typeof phoneNumber === 'string' ? phoneNumber.trim().slice(0, 40) : undefined,
-      unitReached: typeof unitReached === 'number' ? unitReached : 4,
-      passed: passed !== false,
     });
     return NextResponse.json({ ok: true, recorded: true });
   } catch (err) {

@@ -9,7 +9,7 @@ import {
   Slide,
   UNITS,
 } from '@/content/module';
-import { SHOW_CERTIFICATE } from '@/lib/config';
+import { REVIEW_MODE, SHOW_CERTIFICATE } from '@/lib/config';
 import {
   EMPTY_PROGRESS,
   StoredProgress,
@@ -22,6 +22,7 @@ import { Progress } from '@/components/Progress';
 import { UnitIcon } from '@/components/UnitIcon';
 import { Confetti } from '@/components/Confetti';
 import { Certificate } from '@/components/Certificate';
+import { WhatsAppShare } from '@/components/WhatsAppShare';
 import { SortActivity } from '@/components/activities/SortActivity';
 import { QuizActivity } from '@/components/activities/QuizActivity';
 import { MatchActivity } from '@/components/activities/MatchActivity';
@@ -81,10 +82,11 @@ export default function Page() {
     saveProgress(next);
   }, []);
 
-  const allActivitiesDone = useMemo(
-    () => ACTIVITY_IDS.every((id) => progress.done.includes(id)),
-    [progress.done],
-  );
+  const allActivitiesDone =
+    useMemo(
+      () => ACTIVITY_IDS.every((id) => progress.done.includes(id)),
+      [progress.done],
+    ) || REVIEW_MODE;
 
   const isUnitComplete = useCallback(
     (unitIndex: number) =>
@@ -170,8 +172,6 @@ export default function Page() {
         body: JSON.stringify({
           name: name.trim(),
           phoneNumber: phone.trim() || undefined,
-          unitReached: UNITS.length,
-          passed: true,
         }),
       });
       if (!res.ok) throw new Error('save failed');
@@ -267,7 +267,7 @@ export default function Page() {
                 className="btn btn-primary"
                 onClick={() => goToSlide(lastUnitIndex, 0)}
               >
-                המשך מ{UNITS[lastUnitIndex].title} →
+                המשך מ{UNITS[lastUnitIndex].title} ←
               </button>
             </div>
           </div>
@@ -302,14 +302,14 @@ export default function Page() {
 
             <div className="nav-row nav-sticky">
               <button className="btn btn-ghost" onClick={goBack}>
-                ← חזרה
+                → חזרה
               </button>
               <button
                 className="btn btn-primary"
                 onClick={() => setScreen({ kind: 'declaration' })}
                 disabled={!allActivitiesDone}
               >
-                למסך ההצהרה →
+                למסך ההצהרה ←
               </button>
             </div>
           </div>
@@ -370,7 +370,7 @@ export default function Page() {
 
             <div className="nav-row nav-sticky">
               <button className="btn btn-ghost" onClick={goBack}>
-                ← חזרה
+                → חזרה
               </button>
               <button
                 className="btn btn-primary"
@@ -413,9 +413,7 @@ export default function Page() {
               <>
                 <Certificate name={progress.name || name} date={completedAt} />
                 <div className="nav-row no-print">
-                  <button className="btn btn-secondary" onClick={() => window.print()}>
-                    הדפסה / שמירת התעודה
-                  </button>
+                  <WhatsAppShare name={progress.name || name} date={completedAt} />
                   <button className="btn btn-ghost" onClick={restart}>
                     מעבר על הלומדה מחדש
                   </button>
@@ -425,6 +423,7 @@ export default function Page() {
 
             {!SHOW_CERTIFICATE && (
               <div className="nav-row no-print">
+                <WhatsAppShare name={progress.name || name} date={completedAt} />
                 <button className="btn btn-ghost" onClick={restart}>
                   מעבר על הלומדה מחדש
                 </button>
@@ -441,6 +440,9 @@ export default function Page() {
   const unit = UNITS[unitIndex];
   const slide: Slide = unit.slides[slideIndex];
   const activityDone = slide.kind === 'knowledge' || progress.done.includes(slide.id);
+  /** REVIEW_MODE only unblocks navigation — activities still render as
+      actually-incomplete, so they stay interactive to try out. */
+  const canAdvance = activityDone || REVIEW_MODE;
   const isVeryFirst = unitIndex === 0 && slideIndex === 0;
 
   return (
@@ -472,6 +474,16 @@ export default function Page() {
                 </span>
               </p>
               <h1 className="section-heading">{unit.title}</h1>
+              {slideIndex === 0 && unit.photos.length > 0 && (
+                <div className="unit-gallery" aria-label={`תמונות מהיחידה: ${unit.title}`}>
+                  {unit.photos.map((photo) => (
+                    <figure className="unit-gallery-item" key={photo.src}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.src} alt={photo.alt} loading="lazy" />
+                    </figure>
+                  ))}
+                </div>
+              )}
               <Blocks blocks={slide.blocks} />
             </>
           ) : slide.kind === 'sort' ? (
@@ -502,18 +514,23 @@ export default function Page() {
 
           {/* Above the nav, not below it — on a phone the nav sticks to the
               bottom of the screen and would hide anything after it. */}
-          {!activityDone && (
+          {!activityDone && !REVIEW_MODE && (
             <p className="hint">יש להשלים את הפעילות כדי להמשיך ליחידה הבאה.</p>
+          )}
+          {!activityDone && REVIEW_MODE && (
+            <p className="hint" style={{ color: 'var(--terracotta)' }}>
+              מצב סקירה: אפשר להמשיך בלי להשלים את הפעילות.
+            </p>
           )}
 
           <div className="nav-row nav-sticky no-print">
             <button className="btn btn-ghost" onClick={goBack}>
-              {isVeryFirst ? '← למסך הפתיחה' : '← אחורה'}
+              {isVeryFirst ? '→ למסך הפתיחה' : '→ אחורה'}
             </button>
-            <button className="btn btn-primary" onClick={goNext} disabled={!activityDone}>
+            <button className="btn btn-primary" onClick={goNext} disabled={!canAdvance}>
               {slideIndex + 1 === unit.slides.length && unitIndex + 1 === UNITS.length
-                ? 'לסיכום →'
-                : 'הבא →'}
+                ? 'לסיכום ←'
+                : 'הבא ←'}
             </button>
           </div>
         </div>

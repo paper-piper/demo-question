@@ -63,23 +63,21 @@ async function appendRow(tab: string, header: string[], row: (string | number | 
   });
 }
 
-const RESULTS_HEADER = ['timestamp', 'name', 'phone_number', 'unit_reached', 'passed'];
+const RESULTS_HEADER = ['timestamp', 'name', 'phone_number'];
 const CORKBOARD_HEADER = ['timestamp', 'name', 'initiative'];
 
 export interface ResultRow {
   name: string;
   phoneNumber?: string;
-  unitReached: number;
-  passed: boolean;
 }
 
+/** One row per completed run — reaching this point already means every
+    activity was answered correctly, so there is nothing else to log. */
 export async function appendResult(row: ResultRow) {
   await appendRow(RESULTS_TAB, RESULTS_HEADER, [
     new Date().toISOString(),
     row.name,
     row.phoneNumber ?? '',
-    row.unitReached,
-    row.passed ? 'TRUE' : 'FALSE',
   ]);
 }
 

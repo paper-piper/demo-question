@@ -98,11 +98,21 @@ export interface BoardActivity {
 export type Activity = SortActivity | QuizActivity | MatchActivity | BoardActivity;
 export type Slide = KnowledgeSlide | Activity;
 
+/** Photos live at /public/photos/units/{unit}/photo-{1..count}.jpg. */
+function unitPhotos(unit: number, count: number, alt: string) {
+  return Array.from({ length: count }, (_, i) => ({
+    src: `/photos/units/${unit}/photo-${i + 1}.jpg`,
+    alt: `${alt} (${i + 1})`,
+  }));
+}
+
 export interface Unit {
   id: string;
   number: number;
   title: string;
   icon: string;
+  /** Presentational only — not part of the docx text, so free to set/repeat. */
+  photos: { src: string; alt: string }[];
   slides: Slide[];
 }
 
@@ -184,6 +194,7 @@ export const UNITS: Unit[] = [
     number: 1,
     title: 'יחידה 1: רשויות, חופש וגבולות',
     icon: 'scales',
+    photos: unitPhotos(1, 3, 'מפגש קהילתי בפרלמנט בית הספר'),
     slides: [
       {
         kind: 'knowledge',
@@ -259,6 +270,7 @@ export const UNITS: Unit[] = [
     number: 2,
     title: 'יחידה 2: למידה, בחירה ואחריות',
     icon: 'compass',
+    photos: unitPhotos(2, 8, 'תלמידים לומדים ומשחקים מתוך בחירה חופשית'),
     slides: [
       {
         kind: 'knowledge',
@@ -340,6 +352,7 @@ export const UNITS: Unit[] = [
     number: 3,
     title: 'יחידה 3: תפקיד החונך והקבוצה החברתית',
     icon: 'people',
+    photos: unitPhotos(3, 4, 'ילדים בפעילות חברתית משותפת'),
     slides: [
       {
         kind: 'knowledge',
@@ -379,6 +392,7 @@ export const UNITS: Unit[] = [
     number: 4,
     title: 'יחידה 4: מעורבות הורים',
     icon: 'hands',
+    photos: unitPhotos(4, 3, 'מפגש הורים וצוות בקהילת בית הספר'),
     slides: [
       {
         kind: 'knowledge',

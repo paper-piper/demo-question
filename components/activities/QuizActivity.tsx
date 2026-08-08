@@ -102,7 +102,7 @@ export function QuizActivity({
 
       <div className="nav-row">
         <button className="btn btn-ghost" onClick={() => goTo(index - 1)} disabled={index === 0}>
-          ← השאלה הקודמת
+          → השאלה הקודמת
         </button>
         {!isLast ? (
           <button
@@ -110,7 +110,7 @@ export function QuizActivity({
             onClick={() => goTo(index + 1)}
             disabled={!answered.has(question.id)}
           >
-            לשאלה הבאה →
+            לשאלה הבאה ←
           </button>
         ) : (
           answered.size === data.questions.length && (

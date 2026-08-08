@@ -7,6 +7,14 @@
  */
 export const SHOW_CERTIFICATE = true;
 
+/**
+ * TEMPORARY — REMOVE BEFORE PRODUCTION.
+ * Lets "הבא" advance past an activity slide without completing it, so the
+ * whole module can be reviewed quickly. Also skips the "complete every
+ * activity" gate before the declaration screen.
+ */
+export const REVIEW_MODE = true;
+
 /** Human-readable module name, used on the certificate. */
 export const MODULE_NAME = 'דמוקרטי לב השרון מהלכה למעשה';
 
