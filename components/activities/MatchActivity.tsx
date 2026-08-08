@@ -61,7 +61,12 @@ export function MatchActivity({
                 ההתאמה
               </p>
               <div className="options">
-                {responses.map((response) => {
+                {/* Once a need is matched the three rejected responses are just
+                    dead weight to scroll past — keep only the answer. */}
+                {(isMatched
+                  ? responses.filter((r) => r.pairId === pair.id)
+                  : responses
+                ).map((response) => {
                   let verdict: 'correct' | 'wrong' | undefined;
                   if (isMatched) {
                     verdict = response.pairId === pair.id ? 'correct' : undefined;

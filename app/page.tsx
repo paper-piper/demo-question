@@ -300,7 +300,7 @@ export default function Page() {
               </>
             )}
 
-            <div className="nav-row">
+            <div className="nav-row nav-sticky">
               <button className="btn btn-ghost" onClick={goBack}>
                 ← חזרה
               </button>
@@ -366,7 +366,9 @@ export default function Page() {
               <span>{DECLARATION.checkboxLabel}</span>
             </label>
 
-            <div className="nav-row">
+            {!name.trim() && <p className="hint">יש להזין שם כדי לאשר את ההצהרה.</p>}
+
+            <div className="nav-row nav-sticky">
               <button className="btn btn-ghost" onClick={goBack}>
                 ← חזרה
               </button>
@@ -378,7 +380,6 @@ export default function Page() {
                 {submitting ? 'שומרים...' : DECLARATION.confirmButton}
               </button>
             </div>
-            {!name.trim() && <p className="hint">יש להזין שם כדי לאשר את ההצהרה.</p>}
           </div>
         </main>
       </div>
@@ -499,7 +500,13 @@ export default function Page() {
             />
           )}
 
-          <div className="nav-row no-print">
+          {/* Above the nav, not below it — on a phone the nav sticks to the
+              bottom of the screen and would hide anything after it. */}
+          {!activityDone && (
+            <p className="hint">יש להשלים את הפעילות כדי להמשיך ליחידה הבאה.</p>
+          )}
+
+          <div className="nav-row nav-sticky no-print">
             <button className="btn btn-ghost" onClick={goBack}>
               {isVeryFirst ? '← למסך הפתיחה' : '← אחורה'}
             </button>
@@ -509,9 +516,6 @@ export default function Page() {
                 : 'הבא →'}
             </button>
           </div>
-          {!activityDone && (
-            <p className="hint">יש להשלים את הפעילות כדי להמשיך ליחידה הבאה.</p>
-          )}
         </div>
       </main>
     </div>

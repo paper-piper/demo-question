@@ -49,6 +49,11 @@ body {
   padding: 0;
 }
 
+html {
+  /* Landscape rotation on iOS otherwise inflates every font size. */
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--page-bg);
   color: var(--ink);
@@ -56,6 +61,17 @@ body {
   font-size: 15px;
   line-height: 1.85;
   -webkit-font-smoothing: antialiased;
+  /* Long unbroken strings must never widen the page on a narrow screen. */
+  overflow-wrap: break-word;
+}
+
+/* While a chip is being dragged the page must not scroll or select text
+   under the finger. */
+body.is-dragging {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grabbing;
 }
 
 h1,
@@ -108,13 +124,16 @@ button:disabled {
   padding: 36px 34px;
 }
 
-@media (max-width: 640px) {
+/* 700px is the project's "phone" breakpoint. The sticky bars below cancel the
+   card's horizontal padding with negative margins, so if this padding changes
+   theirs must change with it. */
+@media (max-width: 700px) {
   .card {
-    padding: 26px 20px;
+    padding: 22px 18px;
     border-radius: 20px;
   }
   .shell {
-    padding: 14px 12px 48px;
+    padding: 12px 10px 32px;
   }
 }
 
@@ -455,6 +474,12 @@ button:disabled {
   align-content: flex-start;
 }
 
+.chip-tray[data-over='true'] {
+  border-color: var(--terracotta);
+  border-style: solid;
+  background: var(--terracotta-soft);
+}
+
 .chip {
   background: var(--paper);
   border: 1px solid var(--border);
@@ -468,6 +493,12 @@ button:disabled {
   text-align: start;
   transition: box-shadow 0.15s ease, transform 0.1s ease;
   max-width: 100%;
+  /* Suppress double-tap zoom and the grey tap flash without giving up
+     single-finger page scrolling, which the drag code manages itself. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .chip:hover:not(:disabled) {
@@ -481,7 +512,29 @@ button:disabled {
 }
 
 .chip[data-dragging='true'] {
-  opacity: 0.45;
+  opacity: 0.3;
+}
+
+/* ---------- drag ghost (the chip that follows the finger) ---------- */
+
+.drag-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.chip-ghost {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  /* Positioned by the drag loop; hidden until it has real coordinates. */
+  opacity: 0;
+  max-width: min(78vw, 420px);
+  border-color: var(--terracotta);
+  background: var(--terracotta-soft);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+  will-change: transform;
 }
 
 .chip[data-verdict='correct'] {
@@ -519,9 +572,25 @@ button:disabled {
   transition: all 0.15s ease;
 }
 
+/* While something is in hand, every bucket reads as a live target. */
+.bucket[data-target='true'] {
+  border-color: var(--olive);
+  background: var(--olive-soft);
+}
+
 .bucket[data-over='true'] {
   border-color: var(--terracotta);
+  border-style: solid;
   background: var(--terracotta-soft);
+  transform: scale(1.01);
+}
+
+.bucket-placeholder {
+  margin: 0;
+  font-size: 13px;
+  color: var(--olive);
+  text-align: center;
+  padding: 8px 0;
 }
 
 .bucket-title {
@@ -551,6 +620,102 @@ button:disabled {
   font-size: 13px;
   color: var(--ink-faint);
   margin: 10px 0 0;
+}
+
+/* ---------- sorting dock ----------
+   Tapping a chip raises this bar with one button per authority, so placing a
+   card never requires scrolling down to find its bucket. */
+
+.sort-dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 60;
+  background: var(--paper);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.16);
+  padding: 13px 16px calc(13px + env(safe-area-inset-bottom));
+  animation: dock-up 0.18s ease;
+}
+
+@keyframes dock-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Off the phone it floats as a centred card rather than a full-width bar. */
+@media (min-width: 701px) {
+  .sort-dock {
+    bottom: 22px;
+    max-width: 660px;
+    margin-inline: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-panel);
+  }
+  .sort-dock-actions {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+.sort-dock-eyebrow {
+  display: block;
+  font-family: var(--font-rubik), sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--terracotta);
+  margin-bottom: 2px;
+}
+
+.sort-dock-item {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.sort-dock-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sort-dock-btn {
+  min-height: 46px;
+  background: var(--olive-soft);
+  color: var(--olive);
+  border: 1px solid transparent;
+  border-radius: var(--r-chip);
+  font-family: var(--font-rubik), sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.3;
+  padding: 8px 10px;
+  transition: filter 0.15s ease;
+}
+
+.sort-dock-btn:hover {
+  filter: brightness(0.97);
+}
+
+.sort-dock-btn:active {
+  background: var(--olive);
+  color: #fff;
+}
+
+.sort-dock-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-family: var(--font-rubik), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px;
 }
 
 /* ---------- quiz ---------- */
@@ -808,7 +973,7 @@ button:disabled {
   margin: 24px 0;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .photo-strip {
     grid-template-columns: 1fr 1fr;
   }
@@ -930,6 +1095,183 @@ button:disabled {
   }
 }
 
+/* ---------- phone layout ----------
+   Phones are the primary device for this module, so everything below is about
+   thumb reach, touch-target size and not making the learner scroll. */
+
+@media (max-width: 700px) {
+  body {
+    /* 15px is a touch tight for reading Hebrew body copy on a handset. */
+    font-size: 16px;
+  }
+
+  /* Keep the primary action in reach at the bottom of the screen instead of
+     at the far end of a long slide. The negative margins cancel the card's
+     padding so the bar spans the card's full width. */
+  .nav-sticky {
+    position: sticky;
+    bottom: 0;
+    margin: 20px -18px -22px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 20px 20px;
+    z-index: 20;
+  }
+
+  /* Two thumb-sized buttons rather than two small ones pushed apart. */
+  .nav-row {
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .nav-row .btn {
+    flex: 1;
+    min-height: 48px;
+    padding-inline: 12px;
+    text-align: center;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost {
+    min-height: 48px;
+  }
+
+  /* The unit stepper wrapped onto three rows and ate the screen; now it is a
+     single swipeable row. */
+  .progress-wrap {
+    padding: 10px 14px 4px;
+  }
+
+  .unit-stepper {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    margin-bottom: 10px;
+  }
+
+  .unit-stepper::-webkit-scrollbar {
+    display: none;
+  }
+
+  .step {
+    flex: none;
+    min-height: 38px;
+  }
+
+  .bar-label {
+    font-size: 11.5px;
+    gap: 10px;
+  }
+
+  /* Bigger chips: a 14px pill is hard to hit and harder to grab. */
+  .chip {
+    padding: 11px 16px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14.5px;
+  }
+
+  .chip-tray {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .bucket {
+    min-height: 92px;
+    padding: 12px;
+  }
+
+  .option {
+    padding: 13px 14px;
+    min-height: 52px;
+  }
+
+  .need-card,
+  .scenario {
+    padding: 14px 15px;
+  }
+
+  /* iOS zooms the whole page in when a focused field is under 16px. */
+  .input,
+  .textarea {
+    font-size: 16px;
+    padding: 13px 14px;
+  }
+
+  .textarea {
+    min-height: 110px;
+  }
+
+  .checkbox-row {
+    padding: 14px;
+  }
+
+  .checkbox-row input {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* A centred dialog on a small screen leaves unusable slivers of backdrop;
+     a bottom sheet is easier to reach and to dismiss. */
+  .modal-backdrop {
+    padding: 0;
+    place-items: end stretch;
+  }
+
+  .modal {
+    max-height: 90dvh;
+    border-radius: 22px 22px 0 0;
+    padding: 22px 18px calc(20px + env(safe-area-inset-bottom));
+    animation: sheet-up 0.22s ease;
+  }
+
+  .modal-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .corkboard {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .certificate {
+    padding: 26px 18px;
+  }
+
+  .declaration-text {
+    padding: 15px 16px;
+  }
+
+  .photo-strip {
+    gap: 8px;
+    margin: 18px 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+/* Very narrow handsets: the stepper labels are the first thing to go. */
+@media (max-width: 380px) {
+  .step span {
+    display: none;
+  }
+  .step {
+    padding: 8px 11px;
+  }
+}
+
 /* ---------- print (certificate) ---------- */
 
 @media print {
@@ -946,5 +1288,16 @@ button:disabled {
   }
   .certificate {
     page-break-inside: avoid;
+  }
+  /* Sticky/floating chrome must not print or reserve space on the page. */
+  .nav-sticky {
+    position: static;
+    margin: 0;
+    border: none;
+    background: none;
+  }
+  .sort-dock,
+  .drag-layer {
+    display: none !important;
   }
 }
