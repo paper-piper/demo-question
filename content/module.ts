@@ -11,9 +11,16 @@
  * developer_instructions.docx explicitly requires ("הודעת הצלחה קצרה" /
  * "הסבר קצר"). They are marked below.
  *
- * `constitutionExcerpt` fields quote the relevant unit's own body text verbatim
- * — the source document contains no separate constitution excerpts.
+ * `constitutionExcerpt` fields quote content/constitution.ts, which is itself
+ * a verbatim extraction of content/source/חוקה-הדמוקרטי-לב-השרון.pdf — the
+ * school's actual constitution.
  */
+
+import {
+  EXCERPT_AUTHORITIES,
+  EXCERPT_CHOICE_FREEDOM,
+  EXCERPT_MENTORING,
+} from './constitution';
 
 export type Block =
   | { type: 'paragraph'; text: string }
@@ -261,7 +268,7 @@ export const UNITS: Unit[] = [
           { id: 's13', text: 'הבטחת קיום בית הספר כדמוקרטי "מכאן ולעולם".', bucketId: 'association' },
           { id: 's14', text: 'אישור סופי של מינוי המנהל שנבחר.', bucketId: 'association' },
         ],
-        constitutionExcerpt: UNIT_1_AUTHORITIES,
+        constitutionExcerpt: EXCERPT_AUTHORITIES,
       },
     ],
   },
@@ -311,7 +318,7 @@ export const UNITS: Unit[] = [
               { id: 'c', label: 'ג.', text: 'מצב זה מעיד על חוסר התאמה למסגרת הדמוקרטית.' },
             ],
             correctOptionId: 'b',
-            constitutionExcerpt: UNIT_2_PRINCIPLES,
+            constitutionExcerpt: EXCERPT_CHOICE_FREEDOM,
           },
           {
             id: 'u2-q2',
@@ -326,7 +333,7 @@ export const UNITS: Unit[] = [
               },
             ],
             correctOptionId: 'b',
-            constitutionExcerpt: UNIT_2_PRINCIPLES,
+            constitutionExcerpt: EXCERPT_CHOICE_FREEDOM,
           },
           {
             id: 'u2-q3',
@@ -341,7 +348,7 @@ export const UNITS: Unit[] = [
               },
             ],
             correctOptionId: 'b',
-            constitutionExcerpt: UNIT_2_PRINCIPLES,
+            constitutionExcerpt: EXCERPT_CHOICE_FREEDOM,
           },
         ],
       },
@@ -383,7 +390,7 @@ export const UNITS: Unit[] = [
             response: 'קיום דיאלוג משמעותי וקשר אישי בלתי פורמלי התומך בילד.',
           },
         ],
-        constitutionExcerpt: UNIT_3_MENTORING,
+        constitutionExcerpt: EXCERPT_MENTORING,
       },
     ],
   },

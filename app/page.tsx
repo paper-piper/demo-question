@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   COMPLETION,
   DECLARATION,
@@ -226,13 +227,14 @@ export default function Page() {
               ))}
             </div>
             <Blocks blocks={OPENING.blocks} />
-            <button
-              className="btn btn-primary"
-              onClick={() => goToSlide(0, 0)}
-              style={{ marginTop: 10 }}
-            >
-              {OPENING.startButton}
-            </button>
+            <div className="nav-row" style={{ marginTop: 10 }}>
+              <button className="btn btn-primary" onClick={() => goToSlide(0, 0)}>
+                {OPENING.startButton}
+              </button>
+              <Link href="/constitution" className="btn-link">
+                לקריאת חוקת בית הספר במלואה ←
+              </Link>
+            </div>
           </div>
         </main>
       </div>

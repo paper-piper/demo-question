@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { Block, FEEDBACK } from '@/content/module';
 import { Blocks } from './RichText';
 
@@ -85,9 +86,14 @@ export function ConstitutionModal({
           <Blocks blocks={excerpt} />
         </div>
 
-        <button className="btn btn-secondary" onClick={onClose} style={{ marginTop: 8 }}>
-          חזרה לשאלה
-        </button>
+        <div className="nav-row" style={{ marginTop: 8 }}>
+          <button className="btn btn-secondary" onClick={onClose}>
+            חזרה לשאלה
+          </button>
+          <Link href="/constitution" className="btn-link" target="_blank" rel="noopener">
+            לקריאת החוקה המלאה ←
+          </Link>
+        </div>
       </div>
     </div>
   );
