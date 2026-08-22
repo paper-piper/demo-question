@@ -14,13 +14,15 @@
  * `constitutionExcerpt` fields quote content/constitution.ts, which is itself
  * a verbatim extraction of content/source/חוקה-הדמוקרטי-לב-השרון.pdf — the
  * school's actual constitution.
+ *
+ * EXCEPTION: the quiz's `questions` (unit 2) are no longer part of this
+ * locked file — they're sourced from content/quiz-questions.generated.ts,
+ * which is regenerated from the "Questions" tab of the Google Sheet before
+ * every build. See docs/google-sheets-setup.md.
  */
 
-import {
-  EXCERPT_AUTHORITIES,
-  EXCERPT_CHOICE_FREEDOM,
-  EXCERPT_MENTORING,
-} from './constitution';
+import { EXCERPT_AUTHORITIES, EXCERPT_MENTORING } from './constitution';
+import { QUIZ_QUESTIONS } from './quiz-questions.generated';
 
 export type Block =
   | { type: 'paragraph'; text: string }
@@ -299,58 +301,7 @@ export const UNITS: Unit[] = [
         id: 'u2-a1',
         heading: 'יחידה 2: חידון דילמות "בונים מערכת"',
         instruction: 'קראו את התרחישים הבאים ובחרו בתגובה התואמת את עקרונות הבחירה והאחריות.',
-        questions: [
-          {
-            id: 'u2-q1',
-            scenario:
-              'תרחיש 1: "שכרון החופש" - תלמיד חדש שהגיע מבית ספר רגיל החליט שבחודש הראשון הוא לא נרשם לאף קורס ומעביר את כל היום במגרש הכדורגל ובמרחבי בית הספר.',
-            options: [
-              {
-                id: 'a',
-                label: 'א.',
-                text: 'יש לחייב אותו לבחור לפחות במקצועות ליבה כדי שלא "ילך לאיבוד" ויצבור פערים.',
-              },
-              {
-                id: 'b',
-                label: 'ב.',
-                text: 'זהו מצב טבעי המכונה "שכרון חופש". הצוות ילווה אותו בסבלנות עד שילמד לנהל את החופש שלו ויבחר בעשייה ולמידה מתוך מוטיבציה פנימית עמוקה.',
-              },
-              { id: 'c', label: 'ג.', text: 'מצב זה מעיד על חוסר התאמה למסגרת הדמוקרטית.' },
-            ],
-            correctOptionId: 'b',
-            constitutionExcerpt: EXCERPT_CHOICE_FREEDOM,
-          },
-          {
-            id: 'u2-q2',
-            scenario:
-              'תרחיש 2: המעבר מרצון למחויבות - תלמידה בחרה בקורס אנגלית בתחילת השנה, אך לאחר חודשיים היא החלה "להבריז" ממנו באופן קבוע כי הקורס הפך למאתגר מדי עבורה.',
-            options: [
-              { id: 'a', label: 'א.', text: 'זכותה המלאה לא להגיע, הבחירה היא יומיומית ודינמית.' },
-              {
-                id: 'b',
-                label: 'ב.',
-                text: 'הבחירה כרוכה באחריות. התלמידה מחויבת למערכת שבנתה לעצמה, וכל שינוי או פרישה חייבים להיעשות בהליך רשמי מול המורה והחונך.',
-              },
-            ],
-            correctOptionId: 'b',
-            constitutionExcerpt: EXCERPT_CHOICE_FREEDOM,
-          },
-          {
-            id: 'u2-q3',
-            scenario:
-              'תרחיש 3: פער בין רצון ליכולת מקצועית - תלמיד רוצה להשתלב בקורס מתמטיקה מתקדם, אך המורה טוענת שחסר לו ידע בסיסי. התלמיד טוען שזכותו לבחור לפי החוקה.',
-            options: [
-              { id: 'a', label: 'א.', text: 'התלמיד צודק, עקרון הבחירה גובר על שיקולי המורה.' },
-              {
-                id: 'b',
-                label: 'ב.',
-                text: 'הבחירה אם ללמוד היא של התלמיד, אך הקביעה המקצועית באיזו רמה הוא ישובץ היא בסמכות המורה בלבד.',
-              },
-            ],
-            correctOptionId: 'b',
-            constitutionExcerpt: EXCERPT_CHOICE_FREEDOM,
-          },
-        ],
+        questions: QUIZ_QUESTIONS,
       },
     ],
   },

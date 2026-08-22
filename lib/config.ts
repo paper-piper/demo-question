@@ -13,7 +13,7 @@ export const SHOW_CERTIFICATE = true;
  * whole module can be reviewed quickly. Also skips the "complete every
  * activity" gate before the declaration screen.
  */
-export const REVIEW_MODE = true;
+export const REVIEW_MODE = false;
 
 /** Human-readable module name, used on the certificate. */
 export const MODULE_NAME = 'דמוקרטי לב השרון מהלכה למעשה';

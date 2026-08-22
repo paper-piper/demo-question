@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--use-system-ca next dev",
+    "prebuild": "node scripts/sync-questions.mjs",
     "build": "next build",
-    "start": "cross-env NODE_OPTIONS=--use-system-ca next start",
+    "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
