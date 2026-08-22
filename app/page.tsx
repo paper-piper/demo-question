@@ -453,7 +453,6 @@ export default function Page() {
         unitIndex={unitIndex}
         slideIndex={slideIndex}
         isUnitUnlocked={isUnitUnlocked}
-        onJumpToUnit={(i) => goToSlide(i, 0)}
       />
       <main className="shell">
         <div className="card">

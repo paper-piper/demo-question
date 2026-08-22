@@ -7,12 +7,10 @@ export function Progress({
   unitIndex,
   slideIndex,
   isUnitUnlocked,
-  onJumpToUnit,
 }: {
   unitIndex: number;
   slideIndex: number;
   isUnitUnlocked: (i: number) => boolean;
-  onJumpToUnit: (i: number) => void;
 }) {
   const unit = UNITS[unitIndex];
   const withinPct = ((slideIndex + 1) / unit.slides.length) * 100;
@@ -28,8 +26,7 @@ export function Progress({
               key={u.id}
               className="step"
               data-state={state}
-              disabled={!isUnitUnlocked(i) || i === unitIndex}
-              onClick={() => onJumpToUnit(i)}
+              disabled
               aria-current={i === unitIndex ? 'step' : undefined}
               title={u.title}
             >
