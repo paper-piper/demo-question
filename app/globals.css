@@ -116,6 +116,13 @@ button:disabled {
   flex-direction: column;
 }
 
+.dev-credit {
+  align-self: flex-start;
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
 .card {
   background: var(--paper);
   border: 1px solid var(--border);

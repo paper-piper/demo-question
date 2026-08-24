@@ -214,6 +214,7 @@ export default function Page() {
     return (
       <div className="app">
         <main className="shell">
+          <p className="dev-credit">פותח ע״י יפעת שורר נקר ויוני רייכרט</p>
           <div className="card">
             <p className="eyebrow">לומדה אינטראקטיבית</p>
             <h1 className="screen-title">{OPENING.title}</h1>
